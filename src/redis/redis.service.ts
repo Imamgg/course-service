@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { createClient, RedisClientType } from 'redis';
+import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { createClient, RedisClientType } from "redis";
 
 @Injectable()
 export class RedisService {
@@ -9,8 +9,8 @@ export class RedisService {
   constructor(private configService: ConfigService) {
     this.client = createClient({
       socket: {
-        host: this.configService.get('REDIS_HOST'),
-        port: +this.configService.get('REDIS_PORT'),
+        host: this.configService.get("REDIS_HOST"),
+        port: +this.configService.get("REDIS_PORT"),
       },
     });
 
@@ -18,11 +18,11 @@ export class RedisService {
   }
 
   async acquireLock(key: string, ttl: number = 10000): Promise<boolean> {
-    const result = await this.client.set(key, '1', {
+    const result = await this.client.set(key, "1", {
       NX: true,
       PX: ttl,
     });
-    return result === 'OK';
+    return result === "OK";
   }
 
   async releaseLock(key: string): Promise<void> {
