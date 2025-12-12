@@ -1,10 +1,14 @@
-import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
-import { Enrollment } from './entities/enrollment.entity';
-import { Course } from '../course/entities/course.entity';
-import { CreateEnrollmentDto } from './dto/enrollment.dto';
-import { RedisService } from '../redis/redis.service';
+import {
+  Injectable,
+  BadRequestException,
+  ConflictException,
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, DataSource } from "typeorm";
+import { Enrollment } from "./entities/enrollment.entity";
+import { Course } from "./course/entities/course.entity";
+import { CreateEnrollmentDto } from "./dto/enrollment.dto";
+import { RedisService } from "./redis/redis.service";
 
 @Injectable()
 export class EnrollmentService {
@@ -14,7 +18,7 @@ export class EnrollmentService {
     @InjectRepository(Course)
     private courseRepository: Repository<Course>,
     private redisService: RedisService,
-    private dataSource: DataSource,
+    private dataSource: DataSource
   ) {}
 
   async enroll(createEnrollmentDto: CreateEnrollmentDto): Promise<Enrollment> {
@@ -24,7 +28,9 @@ export class EnrollmentService {
     // Acquire distributed lock using Redis
     const lockAcquired = await this.redisService.acquireLock(lockKey, 5000);
     if (!lockAcquired) {
-      throw new BadRequestException('Unable to acquire lock. Please try again.');
+      throw new BadRequestException(
+        "Unable to acquire lock. Please try again."
+      );
     }
 
     try {
@@ -32,17 +38,17 @@ export class EnrollmentService {
       const result = await this.dataSource.transaction(async (manager) => {
         // Lock the course row
         const course = await manager
-          .createQueryBuilder(Course, 'course')
-          .setLock('pessimistic_write')
-          .where('course.id = :id', { id: courseId })
+          .createQueryBuilder(Course, "course")
+          .setLock("pessimistic_write")
+          .where("course.id = :id", { id: courseId })
           .getOne();
 
         if (!course) {
-          throw new BadRequestException('Course not found');
+          throw new BadRequestException("Course not found");
         }
 
         if (course.currentEnrollment >= course.maxCapacity) {
-          throw new BadRequestException('Course is full');
+          throw new BadRequestException("Course is full");
         }
 
         // Check if already enrolled
@@ -51,7 +57,9 @@ export class EnrollmentService {
         });
 
         if (existing) {
-          throw new ConflictException('Student already enrolled in this course');
+          throw new ConflictException(
+            "Student already enrolled in this course"
+          );
         }
 
         // Create enrollment
@@ -85,16 +93,20 @@ export class EnrollmentService {
   }
 
   async unenroll(id: number): Promise<void> {
-    const enrollment = await this.enrollmentRepository.findOne({ where: { id } });
+    const enrollment = await this.enrollmentRepository.findOne({
+      where: { id },
+    });
     if (!enrollment) {
-      throw new BadRequestException('Enrollment not found');
+      throw new BadRequestException("Enrollment not found");
     }
 
     const lockKey = `enrollment:lock:${enrollment.courseId}`;
     const lockAcquired = await this.redisService.acquireLock(lockKey, 5000);
-    
+
     if (!lockAcquired) {
-      throw new BadRequestException('Unable to acquire lock. Please try again.');
+      throw new BadRequestException(
+        "Unable to acquire lock. Please try again."
+      );
     }
 
     try {

@@ -3,6 +3,7 @@
 Service untuk manajemen mata kuliah dan enrollment dalam Sistem SIAKAD Terdistribusi.
 
 ## Fitur
+
 - ✅ CRUD Mata Kuliah
 - ✅ Enrollment Mahasiswa (Transaction-safe)
 - ✅ SELECT FOR UPDATE untuk race condition prevention
@@ -11,10 +12,12 @@ Service untuk manajemen mata kuliah dan enrollment dalam Sistem SIAKAD Terdistri
 - ✅ Capacity Management
 
 ## Konfigurasi
+
 Port: **3002**  
-IP VM: **192.168.192.13**
+IP VM: **192.168.10.13**
 
 ## Environment Variables
+
 ```env
 PORT=3002
 DB_HOST=192.168.10.16
@@ -22,17 +25,19 @@ DB_PORT=3306
 DB_USERNAME=siakad_app
 DB_PASSWORD=admin
 DB_DATABASE=siakad
-REDIS_HOST=192.168.192.15
+REDIS_HOST=192.168.10.15
 REDIS_PORT=6379
-RABBITMQ_URL=amqp://192.168.192.15:5672
+RABBITMQ_URL=amqp://192.168.10.15:5672
 ```
 
 ## Install Dependencies
+
 ```bash
 npm install
 ```
 
 ## Run
+
 ```bash
 # Development
 npm run start:dev
@@ -45,6 +50,7 @@ npm run start:prod
 ## API Endpoints
 
 ### Course Management
+
 - `POST /api/courses` - Buat mata kuliah baru
 - `GET /api/courses` - Ambil semua mata kuliah
 - `GET /api/courses?semester=1` - Filter by semester
@@ -54,6 +60,7 @@ npm run start:prod
 - `DELETE /api/courses/:id` - Hapus mata kuliah
 
 ### Enrollment Management
+
 - `POST /api/enrollments` - Daftar mata kuliah (dengan locking)
 - `GET /api/enrollments` - Semua enrollment
 - `GET /api/enrollments?studentNim=2024001` - Enrollment by mahasiswa
@@ -61,9 +68,10 @@ npm run start:prod
 - `DELETE /api/enrollments/:id` - Batalkan enrollment
 
 ## Request Examples
+
 ```bash
 # Buat mata kuliah
-curl -X POST http://192.168.192.13:3002/api/courses \
+curl -X POST http://192.168.10.13:3002/api/courses \
   -H "Content-Type: application/json" \
   -d '{
     "code":"IF101",
@@ -75,7 +83,7 @@ curl -X POST http://192.168.192.13:3002/api/courses \
   }'
 
 # Enrollment (dengan Redis lock & transaction)
-curl -X POST http://192.168.192.13:3002/api/enrollments \
+curl -X POST http://192.168.10.13:3002/api/enrollments \
   -H "Content-Type: application/json" \
   -d '{
     "studentNim":"2024001",
@@ -84,27 +92,31 @@ curl -X POST http://192.168.192.13:3002/api/enrollments \
 ```
 
 ## Fitur Keamanan Enrollment
+
 Sistem menggunakan **dua layer protection**:
 
 1. **Redis Distributed Lock** - Mencegah race condition antar request
 2. **SELECT FOR UPDATE** - Pessimistic locking di database level
 
 Proses enrollment:
+
 ```typescript
 // 1. Acquire Redis lock
-await redisService.acquireLock(`enrollment:lock:${courseId}`)
+await redisService.acquireLock(`enrollment:lock:${courseId}`);
 
 // 2. Transaction dengan SELECT FOR UPDATE
-await manager.createQueryBuilder(Course, 'course')
-  .setLock('pessimistic_write')
-  .where('course.id = :id', { id: courseId })
-  .getOne()
+await manager
+  .createQueryBuilder(Course, "course")
+  .setLock("pessimistic_write")
+  .where("course.id = :id", { id: courseId })
+  .getOne();
 
 // 3. Check capacity & create enrollment
 // 4. Release lock
 ```
 
 ## Database Schema
+
 ```sql
 CREATE TABLE courses (
   id INT PRIMARY KEY AUTO_INCREMENT,
@@ -135,8 +147,9 @@ CREATE TABLE enrollments (
 ```
 
 ## Deployment ke VM
+
 1. Copy folder `course-service` ke VM3
-2. Pastikan Redis sudah running di VM5 (192.168.192.15)
+2. Pastikan Redis sudah running di VM5 (192.168.10.15)
 3. Pastikan RabbitMQ sudah running di VM5
 4. Konfigurasi `.env`
 5. Jalankan `npm install`
