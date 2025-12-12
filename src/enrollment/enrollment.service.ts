@@ -6,9 +6,9 @@ import {
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, DataSource } from "typeorm";
 import { Enrollment } from "./entities/enrollment.entity";
-import { Course } from "./course/entities/course.entity";
+import { Course } from "../course/entities/course.entity";
 import { CreateEnrollmentDto } from "./dto/enrollment.dto";
-import { RedisService } from "./redis/redis.service";
+import { RedisService } from "../redis/redis.service";
 
 @Injectable()
 export class EnrollmentService {
